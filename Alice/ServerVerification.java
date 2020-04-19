@@ -49,7 +49,7 @@ public class ServerVerification {
     
     /* Get Private Key from file */
     public static PrivateKey get(String filename) throws Exception {
-        byte[] keyBytes = Files.readAllBytes(Paths.get("/Users/alicekham/Desktop/50.005/ProgrammingAssignment2/private_key.der"));
+        byte[] keyBytes = Files.readAllBytes(Paths.get("/Users/alicekham/Desktop/50.005/PA2/Alice/private_key.der"));
 
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance("RSA");
