@@ -12,19 +12,17 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
-public class VerifyServer {
+public class ServerVerification {
 
     private static PublicKey serverPublicKey = null;
     private static PrivateKey serverPrivateKey = null;
     private static byte[] certificate = null;
     private InputStream server;
 
-    // argument constructor
-    public VerifyServer(String server) throws IOException {
+    public ServerVerification(String server) throws IOException {
         this.server = new FileInputStream(server);
         try {
             
-
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             /* Get signed certificate */
             X509Certificate serverCert = (X509Certificate) cf.generateCertificate(this.server);

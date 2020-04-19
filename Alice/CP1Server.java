@@ -1,10 +1,12 @@
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -31,6 +33,7 @@ public class CP1Server {
 		BufferedOutputStream bufferedFileOutputStream = null;
 
 		try {
+			System.out.println("Establishing connection...");
 			welcomeSocket = new ServerSocket(port);
 
 			connectionSocket = welcomeSocket.accept();
@@ -39,6 +42,8 @@ public class CP1Server {
 
 			// reads text from a character-input stream
 			BufferedReader inputReader = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
+			//BufferedWriter outputWriter = new BufferedWriter(new OutputStreamWriter(connectionSocket.getOutputStream()));
+
 			// prints formatted representations of objects to a text-output stream
 			// PrintWriter output = new
 			// PrintWriter(connectionSocket.getOutputStream(),true);
@@ -46,7 +51,7 @@ public class CP1Server {
 			while (!connectionSocket.isClosed()) {
 
 				String request = inputReader.readLine();
-				if (request.equals("Requesting Authentication...")) {
+				if (request.equals("Requesting authentication...")) {
 					System.out.println("Client: " + request);
 					break;
 				} else {
@@ -55,13 +60,13 @@ public class CP1Server {
 			}
 
 			/* Create VerifyServer object */
-			VerifyServer verifyServer = new VerifyServer(
+			ServerVerification verifyServer = new ServerVerification(
 					"/Users/alicekham/Desktop/50.005/PA2/Alice/server_signedpublickey.crt");
 
 			/* Receive Cert request from Client */
 			while (true) {
 				String request = inputReader.readLine();
-				if (request.equals("Request Certificate...")) {
+				if (request.equals("Requesting certificate from server...")) {
 					System.out.println("Client: " + request);
 
 					/* Send Cert to Client */
@@ -75,6 +80,7 @@ public class CP1Server {
 			}
 
 			/* Wait For Verification To Be Done */
+			System.out.println("Waiting for verification completion...");
 			System.out.println("Client: " + inputReader.readLine());
 
 			/* Start File Transfer */
