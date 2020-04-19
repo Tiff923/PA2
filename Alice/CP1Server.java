@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -17,16 +18,14 @@ public class CP1Server {
 			port = Integer.parseInt(args[0]);
 
 		/*
-		Server Socket 
-		- is created to bind() to a port and listen() 
-		for a connect() from a client. 
-		So a server just waits for a conversation and doesn't start one.
+		 * Server Socket - is created to bind() to a port and listen() for a connect()
+		 * from a client. So a server just waits for a conversation and doesn't start
+		 * one.
+		 * 
+		 * Client Socket - is created to connect() to a listen() server. The client
+		 * initiates the connection.
+		 */
 
-		Client Socket 
-		- is created to connect() to a listen() server. 
-		The client initiates the connection.
-		*/
-		
 		ServerSocket serverSocket = null;
 		Socket clientSocket = null;
 		// write data to output stream
@@ -48,8 +47,9 @@ public class CP1Server {
 
 			// reads text from a character-input stream
 			BufferedReader inputReader = new BufferedReader(new InputStreamReader(fromClient));
-			
-			//BufferedWriter outputWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+			PrintWriter outputWriter = new PrintWriter(toClient, true);
+			// BufferedWriter outputWriter = new BufferedWriter(new
+			// OutputStreamWriter(clientSocket.getOutputStream()));
 
 			while (!clientSocket.isClosed()) {
 				String request = inputReader.readLine();
@@ -92,9 +92,8 @@ public class CP1Server {
 			/* Get file size from Client */
 			int fileSize = fromClient.readInt();
 			System.out.println("Size of file from Client: " + fileSize);
-			
+
 			int size = 0;
-			int count = 0;
 			while (size < fileSize) {
 				int packetType = fromClient.readInt();
 
@@ -104,45 +103,51 @@ public class CP1Server {
 					int numBytes = fromClient.readInt();
 					byte[] filename = new byte[numBytes];
 					// Must use read fully!
-					// See: https://stackoverflow.com/questions/25897627/datainputstream-read-vs-datainputstream-readfully
+					// See:
+					// https://stackoverflow.com/questions/25897627/datainputstream-read-vs-datainputstream-readfully
 					fromClient.readFully(filename, 0, numBytes);
 
 					fileOutputStream = new FileOutputStream("recv_" + new String(filename, 0, numBytes));
 					bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
-				/* Packet For Transferrin A Chunk Of File */
+					/* Packet For Transferrin A Chunk Of File */
 				} else if (packetType == 1) {
-					count++;
 					int numBytes = fromClient.readInt();
 					int decrytpedNumBytes = fromClient.readInt();
 					size += decrytpedNumBytes;
-					
-					byte[] block = new byte[numBytes];
-					fromClient.readFully(block);
 
-					/*Decrypt each 128 block */
+					byte[] block = new byte[numBytes];
+					fromClient.readFully(block, 0, numBytes);
+
+					/* Decrypt each block */
 					byte[] decryptedBlock = verifyServer.decryptFile(block);
 
 					if (numBytes > 0) {
-						//write(byte[] b, int off, int len) 
-						//Writes len bytes from the specified byte array starting at offset off to this buffered output stream.
+						/*
+						 * write(byte[] b, int off, int len) Writes len bytes from the specified byte
+						 * array starting at offset off to this buffered output stream.
+						 */
 						bufferedFileOutputStream.write(decryptedBlock, 0, decrytpedNumBytes);
-						bufferedFileOutputStream.flush();
+						// bufferedFileOutputStream.flush();
+					}
+
+					if (numBytes < 117) {
+						/* End Of Transfer To Client */
+						System.out.println("File transfer is done...");
+						/* Close The Connection */
+						outputWriter.println("Closing connection...");
+						/* Close Streams and Sockets */
+						if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
+						if (bufferedFileOutputStream != null) fileOutputStream.close();
+						fromClient.close();
+						toClient.close();
+						clientSocket.close();
 					}
 				}
 			}
 
-			/* End Of Transfer To Client */
-			System.out.println("File transfer is done...");
-			/* Close The Connection */
-			System.out.println("Closing connection...");
-			/* Close Streams and Sockets */
-			bufferedFileOutputStream.close();
-			fileOutputStream.close();
-			fromClient.close();
-			toClient.close();
-			clientSocket.close();
-
-		} catch (Exception e) { e.printStackTrace();}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }
