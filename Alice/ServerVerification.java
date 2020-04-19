@@ -22,11 +22,14 @@ public class ServerVerification {
     public ServerVerification(String server) throws IOException {
         this.server = new FileInputStream(server);
         try {
-            
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             /* Get signed certificate */
             X509Certificate serverCert = (X509Certificate) cf.generateCertificate(this.server);
-            certificate = serverCert.getEncoded(); //return byte[]
+            
+            certificate = serverCert.getEncoded(); 
+            //returns encoded form of the certificate 
+            // return type: byte[] form
+            
             /* Get Server Public Key */
             serverPublicKey = serverCert.getPublicKey();
             /* Get Server Private Key */
@@ -56,14 +59,14 @@ public class ServerVerification {
     public byte[] getCertificate() {
         return certificate;
     }
-    /* CP1 Decryption using Private Key */
+    /* Decrypt using Private Key */
     public byte[] decryptFile(byte[] fileByte) {
         
         byte[] decrypted = null;
         try{
-            Cipher fdCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-            fdCipher.init(Cipher.DECRYPT_MODE, serverPrivateKey);
-            decrypted = fdCipher.doFinal(fileByte);
+            Cipher dCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            dCipher.init(Cipher.DECRYPT_MODE, serverPrivateKey);
+            decrypted = dCipher.doFinal(fileByte);
         } catch (NoSuchPaddingException e) {
             e.printStackTrace();
         } catch (NoSuchAlgorithmException e) {

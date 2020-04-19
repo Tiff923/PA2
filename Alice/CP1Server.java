@@ -1,12 +1,10 @@
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -18,10 +16,19 @@ public class CP1Server {
 		if (args.length > 0)
 			port = Integer.parseInt(args[0]);
 
-		// waits for requests to come in over the network
-		ServerSocket welcomeSocket = null;
-		// implements client sockets
-		Socket connectionSocket = null;
+		/*
+		Server Socket 
+		- is created to bind() to a port and listen() 
+		for a connect() from a client. 
+		So a server just waits for a conversation and doesn't start one.
+
+		Client Socket 
+		- is created to connect() to a listen() server. 
+		The client initiates the connection.
+		*/
+		
+		ServerSocket serverSocket = null;
+		Socket clientSocket = null;
 		// write data to output stream
 		DataOutputStream toClient = null;
 		// read data from underlying inputstream
@@ -33,23 +40,18 @@ public class CP1Server {
 		BufferedOutputStream bufferedFileOutputStream = null;
 
 		try {
-			System.out.println("Establishing connection...");
-			welcomeSocket = new ServerSocket(port);
-
-			connectionSocket = welcomeSocket.accept();
-			fromClient = new DataInputStream(connectionSocket.getInputStream());
-			toClient = new DataOutputStream(connectionSocket.getOutputStream());
+			// System.out.println("Establishing connection...");
+			serverSocket = new ServerSocket(port);
+			clientSocket = serverSocket.accept();
+			fromClient = new DataInputStream(clientSocket.getInputStream());
+			toClient = new DataOutputStream(clientSocket.getOutputStream());
 
 			// reads text from a character-input stream
-			BufferedReader inputReader = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
-			//BufferedWriter outputWriter = new BufferedWriter(new OutputStreamWriter(connectionSocket.getOutputStream()));
+			BufferedReader inputReader = new BufferedReader(new InputStreamReader(fromClient));
+			
+			//BufferedWriter outputWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 
-			// prints formatted representations of objects to a text-output stream
-			// PrintWriter output = new
-			// PrintWriter(connectionSocket.getOutputStream(),true);
-
-			while (!connectionSocket.isClosed()) {
-
+			while (!clientSocket.isClosed()) {
 				String request = inputReader.readLine();
 				if (request.equals("Requesting authentication...")) {
 					System.out.println("Client: " + request);
@@ -59,7 +61,7 @@ public class CP1Server {
 				}
 			}
 
-			/* Create VerifyServer object */
+			/* Setting Up Protocol */
 			ServerVerification verifyServer = new ServerVerification(
 					"/Users/alicekham/Desktop/50.005/PA2/Alice/server_signedpublickey.crt");
 
@@ -139,7 +141,7 @@ public class CP1Server {
 			fileOutputStream.close();
 			fromClient.close();
 			toClient.close();
-			connectionSocket.close();
+			clientSocket.close();
 
 		} catch (Exception e) { e.printStackTrace();}
 	}
