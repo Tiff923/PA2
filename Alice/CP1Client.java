@@ -1,8 +1,15 @@
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class CP1Client {
 
@@ -41,7 +48,38 @@ public class CP1Client {
             /*---------------------
             Setting Up Protocol
             ---------------------*/
-            
+			//To send data through the socket to the server
+			PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true); 
+			//To get the server's response
+			BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+
+			out.println("Requesting authentication...");
+			out.println("Requesting certificate from server...");
+			out.flush();
+
+			//get cert from Server and store in buffer 
+			byte[] buffer = new byte[8192]; 
+			fromServer.read(buffer); 
+			
+			//Obtain server public key 
+			ClientVerification obtain = new ClientVerification("cacse.crt"); 
+			InputStream certificate = new ByteArrayInputStream(buffer); 
+			obtain.getCertificate(certificate);
+			obtain.getServerPublicKey();
+			obtain.verifyCert();
+
+			//Authentication Protocol - decrypt message from server 
+			//Inform server authentication complete 
+			//out.println("Authentication complete ...");
+			//out.flush();
+
+			//Encrypt file with server's private key 
+			byte[] fileToSend = Files.readAllBytes(Paths.get(filename));
+			System.out.println(fileToSend.length);
+			byte[] encryptedFile = obtain.encryptFile(fileToSend); 
+			System.out.println(encryptedFile.length); 
+			InputStream inputStream = new ByteArrayInputStream(encryptedFile); 
+			System.out.print(inputStream.available());
 
 			System.out.println("Sending file...");
 
@@ -52,8 +90,8 @@ public class CP1Client {
 			//toServer.flush();
 
 			// Open the file
-			fileInputStream = new FileInputStream(filename);
-			bufferedFileInputStream = new BufferedInputStream(fileInputStream);
+			//fileInputStream = new FileInputStream(filename);
+			bufferedFileInputStream = new BufferedInputStream(inputStream);
 
 	        byte [] fromFileBuffer = new byte[117];
 
@@ -69,7 +107,7 @@ public class CP1Client {
 			}
 
 	        bufferedFileInputStream.close();
-	        fileInputStream.close();
+	        //fileInputStream.close();
 
 			System.out.println("Closing connection...");
 
