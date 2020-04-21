@@ -87,6 +87,31 @@ public class ClientVerification {
     }
 
     /* Encrypt CP1 Using Server Public Key */
+    public byte[] encryptFile1(byte[] fileByte) throws IOException {
+        byte[] encrypted = null;
+
+        try{
+            Cipher eCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding"); 
+            eCipher.init(Cipher.ENCRYPT_MODE, serverPublicKey); 
+            encrypted= eCipher.doFinal(fileByte); 
+
+        }catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        }
+        
+        return encrypted; 
+    }
+
+
+    /* Encrypt CP1 Using Server Public Key */
     public byte[] encryptFile(byte[] fileByte) throws IOException {
         byte[] encrypted = null;
         byte[] input = new byte[117];
@@ -101,7 +126,7 @@ public class ClientVerification {
             while(i != (fileByte.length -1)){
 
                 //Data max length == 117 bytes 
-                    System.out.println("i" + i); 
+                    // System.out.println("i" + i); 
                     
                     if( (fileByte.length-i-1)>= 117 ){
                         for (int j=0; j<input.length; j++){
@@ -138,6 +163,7 @@ public class ClientVerification {
         } catch (IllegalBlockSizeException e) {
             e.printStackTrace();
         }
+        System.out.println(encrypted);
         return encrypted;
     }
 
