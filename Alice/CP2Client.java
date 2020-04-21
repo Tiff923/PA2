@@ -18,7 +18,7 @@ public class CP2Client {
 
 	public static void main(String[] args) {
 
-    	String filename = "100.txt";
+    	String filename = "lorem.txt";
     	if (args.length > 0) filename = args[0];
 
     	String serverAddress = "localhost";
@@ -62,7 +62,7 @@ public class CP2Client {
 			fromServer.read(buffer); 
 			
 			//Obtain server public key 
-			ClientVerification obtain = new ClientVerification("cacse.crt"); 
+			ClientVerification obtain = new ClientVerification("/Users/alicekham/Desktop/50.005/PA2/Alice/cacse.crt"); 
 			InputStream certificate = new ByteArrayInputStream(buffer); 
 			obtain.getCertificate(certificate);
 			obtain.getServerPublicKey();
@@ -107,14 +107,14 @@ public class CP2Client {
 			//fileInputStream = new FileInputStream(filename);
 			bufferedFileInputStream = new BufferedInputStream(inputStream);
 
-	        byte [] fromFileBuffer = new byte[117];
+	        byte [] fromFileBuffer = new byte[128];
 
 	        // Send the file
 	        for (boolean fileEnded = false; !fileEnded;) {
 				numBytes = bufferedFileInputStream.read(fromFileBuffer);
-				fileEnded = numBytes < 117;
+				fileEnded = numBytes < 128;
 
-				toServer.writeInt(1);
+				toServer.writeInt(2);
 				toServer.writeInt(numBytes);
 				toServer.write(fromFileBuffer);
 				toServer.flush();

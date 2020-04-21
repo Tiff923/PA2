@@ -1,5 +1,3 @@
-package Alice;
-
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -27,7 +25,6 @@ public class ServerVerification {
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             /* Get signed certificate */
             X509Certificate serverCert = (X509Certificate) cf.generateCertificate(this.server);
-            
             certificate = serverCert.getEncoded(); 
             //returns encoded form of the certificate 
             // return type: byte[] form
@@ -35,14 +32,14 @@ public class ServerVerification {
             /* Get Server Public Key */
             serverPublicKey = serverCert.getPublicKey();
             /* Get Server Private Key */
-            serverPrivateKey = get("/Users/alicekham/Desktop/50.005/PA2/Alice/private_key.der");
+            serverPrivateKey = get("private_key.der");
 
         } catch (CertificateException e) {
             e.printStackTrace();
-        } catch (InvalidKeySpecException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
+        // } catch (InvalidKeySpecException e) {
+        //     e.printStackTrace();
+        // } catch (NoSuchAlgorithmException e) {
+        //     e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -50,9 +47,8 @@ public class ServerVerification {
     }
     
     /* Get Private Key from File */
-    public PrivateKey get() throws Exception {
-        byte[] keyBytes = Files.readAllBytes(Paths.get("/Users/alicekham/Desktop/50.005/PA2/Alice/private_key.der"));
-
+    public PrivateKey get(String fileName) throws Exception {
+        byte[] keyBytes = Files.readAllBytes(Paths.get(fileName));
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance("RSA");
         return kf.generatePrivate(spec);
@@ -85,8 +81,50 @@ public class ServerVerification {
         return encrypted;
     }
     /* Decrypt using Private Key */
-    public byte[] decryptFile(byte[] fileByte) {
+    public byte[] decryptFileCP1(byte[] fileByte) {
         
+        int start = 0;
+        int size = fileByte.length;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        byte[] decrypted = null;
+    
+        try{
+            Cipher dCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            dCipher.init(Cipher.DECRYPT_MODE, serverPrivateKey);
+            
+            while (start < size) {
+                byte[] buffer;
+                if (size - start >= 117) {
+                    //doFinal(byte[] input, int offset, int inputLength )
+                    buffer = dCipher.doFinal(fileByte, start, 117);
+                }
+                else {
+                    //doFinal(byte[] input, int offset, int inputLength )
+                    buffer = dCipher.doFinal(fileByte, start, size - start);
+                }
+                output.write(buffer, 0, buffer.length);
+                start += 117;
+            }
+            decrypted = output.toByteArray();
+            output.close();
+            
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return decrypted;
+    }
+
+    public byte[] decryptFileCP2(byte[] fileByte) {
         byte[] decrypted = null;
         try{
             Cipher dCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");

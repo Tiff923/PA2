@@ -1,5 +1,3 @@
-package Alice;
-
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

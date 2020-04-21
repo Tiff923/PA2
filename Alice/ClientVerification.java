@@ -6,18 +6,20 @@ import java.security.cert.X509Certificate;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 
-// the previous version of ClientVerification
 
-public class CVold {
+public class ClientVerification {
 
     private InputStream CA;
     private static PublicKey CAPublicKey;
     private static PublicKey serverPublicKey;
     private static X509Certificate serverCert;
+    private static SecretKey symmetricKey; 
 
-    public CVold(String CA) throws CertificateException, IOException {
+    public ClientVerification(String CA) throws CertificateException, IOException {
 
         this.CA = new FileInputStream(CA);
         /* Extract CA's Public Key from CA Cert */
@@ -55,13 +57,21 @@ public class CVold {
         }
     }
 
-    /* Encrypt CP1 Using Server Public Key */
-    public byte[] encryptFile(byte[] fileByte) {
+    public void generateSymmetricKey() throws NoSuchAlgorithmException {
+        symmetricKey = KeyGenerator.getInstance("AES").generateKey();  
+    }
+
+    // Encrypt symmetric key using server public key 
+    public byte[] encryptKey(){
         byte[] encrypted = null;
         try {
+			byte[] keyBytes = symmetricKey.getEncoded();
+            System.out.println("Symmetric Key Length: " + keyBytes.length);
+
             Cipher eCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
             eCipher.init(Cipher.ENCRYPT_MODE, serverPublicKey);
-            encrypted = eCipher.doFinal(fileByte);
+            encrypted = eCipher.doFinal(keyBytes);
+
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         } catch (InvalidKeyException e) {
@@ -74,6 +84,86 @@ public class CVold {
             e.printStackTrace();
         }
         return encrypted;
+    }
+
+    /* Encrypt CP1 Using Server Public Key */
+    public byte[] encryptFile(byte[] fileByte) throws IOException {
+        byte[] encrypted = null;
+        byte[] input = new byte[117];
+        byte[] intermediate = null; 
+        ByteArrayOutputStream storage = new ByteArrayOutputStream();
+        int i = 0; 
+          
+        try {
+            Cipher eCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            eCipher.init(Cipher.ENCRYPT_MODE, serverPublicKey);
+
+            while(i != (fileByte.length -1)){
+
+                //Data max length == 117 bytes 
+                    // System.out.println("i" + i); 
+                    
+                    if( (fileByte.length-i-1)>= 117 ){
+                        for (int j=0; j<input.length; j++){
+                            input[j] = fileByte[i]; 
+                            i++; 
+                        }
+                    }
+                    else{
+                        int left = fileByte.length-1-i; 
+                        for(int j=0; j<left; j++){
+                            input[j] = fileByte[i]; 
+                            i++; 
+                        }
+                    }
+                
+                //Encryption of 117 byte data(one block)
+                intermediate = eCipher.doFinal(input);
+
+                //Store each block of data in order 
+                storage.write(intermediate);
+            }
+
+            //Retrieve all encrypted blocks 
+            encrypted = storage.toByteArray();
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        }
+        System.out.println(encrypted);
+        return encrypted;
+    }
+
+    //Encrypt CP2 using symmetric key
+    public byte[] encryptFile2 (byte[] fileByte){   
+        byte[] encrypted = null;
+
+        try{
+            Cipher eCipher = Cipher.getInstance("AES/ECB/PKCS5Padding"); 
+            eCipher.init(Cipher.ENCRYPT_MODE, symmetricKey); 
+            encrypted= eCipher.doFinal(fileByte); 
+
+        }catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        }
+        
+        return encrypted; 
     }
 
 }
