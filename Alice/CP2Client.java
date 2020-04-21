@@ -8,12 +8,16 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Scanner;
 
 public class CP2Client {
 
 	public static void main(String[] args) {
 
-		String filename = "500.txt";
+		// String filename = "500.txt";
+		Scanner in = new Scanner(System.in);
+		String filename = in.nextLine();
+		in.close();
 		if (args.length > 0)
 			filename = args[0];
 

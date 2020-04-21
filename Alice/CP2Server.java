@@ -103,12 +103,12 @@ public class CP2Server {
             /* Wait for client to accept the encrypted session key */
             while (!clientSocket.isClosed()) {
 
-                int task = fromClient.readInt();
+                int packetType = fromClient.readInt();
 
                 BufferedInputStream inputStream = new BufferedInputStream(clientSocket.getInputStream());
 
                 /* Decrypt Session Key using Server Public Key */
-                if (task == 0) {
+                if (packetType == 0) {
                     int sessionKeySize = fromClient.readInt();
                     sessionKey = new byte[sessionKeySize];
                     fromClient.readFully(sessionKey);
@@ -124,15 +124,16 @@ public class CP2Server {
                 }
 
                 /* Get File Name */
-                else if (task == 1) {
+                else if (packetType == 1) {
                     int filenameLen = fromClient.readInt();
                     byte[] filenameBytes = new byte[filenameLen];
                     fromClient.readFully(filenameBytes);
+                    System.out.println("File size: " + filenameLen);
                     filename = new String(filenameBytes);
                 }
 
                 /* Receive File */
-                else if (task == 2) {
+                else if (packetType == 2) {
 
                     int eFileSize = fromClient.readInt();
                     FileOutputStream file = new FileOutputStream("recv_" + filename, true);
@@ -179,7 +180,6 @@ public class CP2Server {
         } catch (
 
         Exception e) {
-            // TODO: handle exception
             e.printStackTrace();
         }
     }

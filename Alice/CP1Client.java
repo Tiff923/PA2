@@ -11,12 +11,16 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Scanner;
 
 public class CP1Client {
 
 	public static void main(String[] args) {
 
-    	String filename = "500.txt";
+		// String filename = "500.txt";
+		Scanner input = new Scanner(System.in);
+		String filename = input.nextLine();
+		input.close();
     	if (args.length > 0) filename = args[0];
 
     	String serverAddress = "localhost";
@@ -118,11 +122,11 @@ public class CP1Client {
 	        for (boolean fileEnded = false; !fileEnded;) {
 				numBytes = bufferedFileInputStream.read(fromFileBuffer);
 				byte[] encrypted = obtain.encryptFile1(fromFileBuffer); 
-				System.out.println(Arrays.toString(encrypted));
+				// System.out.println(Arrays.toString(encrypted));
 				int encryptedNumBytes = encrypted.length; 
 				fileEnded = numBytes < 117;
 
-				System.out.println("File size: " + encryptedNumBytes); 
+				// System.out.println("File size: " + encryptedNumBytes); 
 				
 
 				toServer.writeInt(1);

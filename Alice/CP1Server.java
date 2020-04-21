@@ -164,18 +164,18 @@ public class CP1Server {
 				} else if (packetType == 1) {
 
 					int encryptedNumBytes = fromClient.readInt();
-					System.out.println("File size: " + encryptedNumBytes);
+					// System.out.println("File size: " + encryptedNumBytes);
 					FileOutputStream file = new FileOutputStream("recv_" + filename, true);
 
 					if (encryptedNumBytes == 128) {
 						byte[] encrypted = new byte[encryptedNumBytes];
 						fromClient.readFully(encrypted, 0, encryptedNumBytes);
 
-						System.out.println(Arrays.toString(encrypted));
-						System.out.println("Length of eFileBytes: " + encrypted.length);
+						// System.out.println(Arrays.toString(encrypted));
+						// System.out.println("Length of eFileBytes: " + encrypted.length);
 
 						byte[] decrypted = verifyServer.decryptFileCP1(encrypted);
-						System.out.println(Arrays.toString(decrypted));
+						// System.out.println(Arrays.toString(decrypted));
 						file.write(decrypted);
 						file.close();
 
@@ -183,11 +183,11 @@ public class CP1Server {
 						byte[] encrypted = new byte[encryptedNumBytes];
 						fromClient.readFully(encrypted, 0, encryptedNumBytes);
 
-						System.out.println(Arrays.toString(encrypted));
-						System.out.println("Length of eFileBytes: " + encrypted.length);
+						// System.out.println(Arrays.toString(encrypted));
+						// System.out.println("Length of eFileBytes: " + encrypted.length);
 
 						byte[] decrypted = verifyServer.decryptFileCP1(encrypted);
-						System.out.println(Arrays.toString(decrypted));
+						// System.out.println(Arrays.toString(decrypted));
 						file.write(decrypted);
 						file.close();
 
