@@ -18,7 +18,7 @@ public class CP2Client {
 
 	public static void main(String[] args) {
 
-    	String filename = "lorem.txt";
+    	String filename = "100.txt";
     	if (args.length > 0) filename = args[0];
 
     	String serverAddress = "localhost";
@@ -57,16 +57,45 @@ public class CP2Client {
 			out.println("Requesting certificate from server...");
 			out.flush();
 
+			ClientVerification obtain = new ClientVerification("/Users/alicekham/Desktop/50.005/PA2/Alice/cacse.crt"); 
+			/** Generate Nonce **/
+            System.out.println("Generating Nonce...");
+            obtain.generateNonce();
+
+            /** Send Nonce to Server **/
+            System.out.println("Sending Nonce over...");
+            toServer.write(obtain.getNonce());
+
+            /** Get Encrypted nonce **/
+            fromServer.read(obtain.getEncryptedNonce());
+			System.out.println("Retrieved encrypted nonce from server...");
+			
+			System.out.println("Requesting certificate from server...");
+			out.println("Requesting certificate from server...");
+
 			//get cert from Server and store in buffer 
 			byte[] buffer = new byte[8192]; 
 			fromServer.read(buffer); 
 			
 			//Obtain server public key 
-			ClientVerification obtain = new ClientVerification("/Users/alicekham/Desktop/50.005/PA2/Alice/cacse.crt"); 
 			InputStream certificate = new ByteArrayInputStream(buffer); 
 			obtain.getCertificate(certificate);
 			obtain.getServerPublicKey();
 			obtain.verifyCert();
+
+			byte[] check = obtain.decryptNonce(obtain.getEncryptedNonce());
+
+			if (obtain.validateNonce(check) == true) {
+				out.println("Server identity verified...");
+				System.out.println("Server identity verified...");
+			} else {
+				System.out.println("Server identity not verified...");
+				// DO WHAT ELSE?
+				System.out.println("Closing connections...");
+				clientSocket.close();
+				fromServer.close();
+				toServer.close();
+			}
 
 			//Authentication Protocol - decrypt message from server 
 			//Inform server authentication complete 

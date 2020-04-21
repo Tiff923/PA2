@@ -1,5 +1,3 @@
-package Alice;
-
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -10,6 +8,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Arrays;
 
 public class CP1Server {
 
@@ -54,6 +53,7 @@ public class CP1Server {
 			// OutputStreamWriter(clientSocket.getOutputStream()));
 
 			while (!clientSocket.isClosed()) {
+
 				String request = inputReader.readLine();
 				if (request.equals("Requesting authentication...")) {
 					System.out.println("Client: " + request);
@@ -65,26 +65,22 @@ public class CP1Server {
 
 			/* Setting Up Protocol */
 			ServerVerification verifyServer = new ServerVerification(
-					"/Users/alicekham/Desktop/50.005/PA2/Alice/server_signedpublickey.crt");
+					"/Users/alicekham/Desktop/50.005/PA2/Alice/server_signedkey.crt");
 
-			/* Send Client An Encrypted Message */
-			/* Hi I'm The Server */
-			while(true) {
-				String request = inputReader.readLine();
-				if (request.equals("Please provide server identity...")) {
-					System.out.println("Client: " + request);
+			/* Get Nonce From Client */
+			fromClient.read(verifyServer.getNonce());
+			// outputWriter.println("Nonce received...");
+			System.out.println("Nonce received...");
 
-					/* Send Encrypted Message */
-					String msg = "I'm the server.";
-					byte[] msgByte = verifyServer.encryptFile(msg.getBytes());
-					System.out.println(msgByte);
-					toClient.write(msgByte, 0, msgByte.length);
-					toClient.flush();
-					break;
-				}  else {
-					System.out.println("Failed to send message...");
-				}
-			}
+			/* Encrypt Nonce */
+			verifyServer.encryptNonce();
+			System.out.println("Nonce encrypted...");
+
+			/* Send Encrypted Nonce To Client */
+			// outputWriter.println("Sending nonce...");
+			toClient.write(verifyServer.getEncryptedNonce());
+			System.out.println("Nonce sent to client...");
+			toClient.flush();
 
 			/* Receive Cert request from Client */
 			while (true) {
@@ -102,10 +98,38 @@ public class CP1Server {
 				}
 			}
 
-			/* Wait For Verification To Be Done */
-			System.out.println("Waiting for verification completion...");
-			System.out.println("Client: " + inputReader.readLine());
+			/* Receive confirmation from Client */
+			String ok = inputReader.readLine();
+			if (ok.equals("Server identity verified...")) {
+				System.out.println("Server identity verified...");
+			} else {
+				System.out.println("Client failed to identify server...");
+			}
 
+			/* Send Client An Encrypted Message */
+			/* Hi I'm The Server */
+			// while (true) {
+			// String request = inputReader.readLine();
+			// if (request.equals("Please provide server identity...")) {
+			// System.out.println("Client: " + request);
+
+			// /* Send Encrypted Message */
+			// String msg = "I'm the server.";
+			// byte[] msgByte = verifyServer.encryptFile(msg.getBytes());
+			// System.out.println(msgByte);
+			// toClient.write(msgByte, 0, msgByte.length);
+			// toClient.flush();
+			// break;
+			// } else {
+			// System.out.println("Failed to send message...");
+			// }
+			// }
+
+			/* Wait For Verification To Be Done */
+			// System.out.println("Waiting for verification completion...");
+			// System.out.println("Client: " + inputReader.readLine());
+
+			/* Start File Transfer */
 			/* Start File Transfer */
 			System.out.println("Authentication Protocol complete...");
 			System.out.println("Receiving File...");
@@ -114,60 +138,151 @@ public class CP1Server {
 			int fileSize = fromClient.readInt();
 			System.out.println("Size of file from Client: " + fileSize);
 
-			int size = 0;
-			while (size < fileSize) {
+			String filename = "";
+			while (!clientSocket.isClosed()) {
+
 				int packetType = fromClient.readInt();
 
 				/* Packet For Transferring File Name */
 				if (packetType == 0) {
-					System.out.println("Receiving file...");
-					int numBytes = fromClient.readInt();
-					byte[] filename = new byte[numBytes];
-					// Must use read fully!
-					// See:
-					// https://stackoverflow.com/questions/25897627/datainputstream-read-vs-datainputstream-readfully
-					fromClient.readFully(filename, 0, numBytes);
+					/*
+					 * System.out.println("Receiving file..."); int numBytes = fromClient.readInt();
+					 * byte[] filename = new byte[numBytes]; // Must use read fully! // See: //
+					 * https://stackoverflow.com/questions/25897627/datainputstream-read-vs-
+					 * datainputstream-readfully fromClient.readFully(filename, 0, numBytes);
+					 * fileOutputStream = new FileOutputStream("recv_" + new String(filename, 0,
+					 * numBytes)); bufferedFileOutputStream = new
+					 * BufferedOutputStream(fileOutputStream);
+					 */
 
-					fileOutputStream = new FileOutputStream("recv_" + new String(filename, 0, numBytes));
-					bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
+					int filenameLen = fromClient.readInt();
+					byte[] filenameBytes = new byte[filenameLen];
+					fromClient.readFully(filenameBytes);
+					filename = new String(filenameBytes);
 
-				/* Packet For Transferrin A Chunk Of File */
+					/* Packet For Transferrin A Chunk Of File */
 				} else if (packetType == 1) {
-					int numBytes = fromClient.readInt();
-					int decrytpedNumBytes = fromClient.readInt();
-					size += decrytpedNumBytes;
 
-					byte[] block = new byte[numBytes];
-					fromClient.readFully(block, 0, numBytes);
+					int encryptedNumBytes = fromClient.readInt();
+					System.out.println("File size: " + encryptedNumBytes);
+					FileOutputStream file = new FileOutputStream("recv_" + filename, true);
 
-					/* Decrypt each block */
-					byte[] decryptedBlock = verifyServer.decryptFile(block);
+					if (encryptedNumBytes == 128) {
+						byte[] encrypted = new byte[encryptedNumBytes];
+						fromClient.readFully(encrypted, 0, encryptedNumBytes);
 
-					if (numBytes > 0) {
-						/*
-						 * write(byte[] b, int off, int len) Writes len bytes from the specified byte
-						 * array starting at offset off to this buffered output stream.
-						 */
-						bufferedFileOutputStream.write(decryptedBlock, 0, decrytpedNumBytes);
-						// bufferedFileOutputStream.flush();
-					}
+						System.out.println(Arrays.toString(encrypted));
+						System.out.println("Length of eFileBytes: " + encrypted.length);
 
-					if (numBytes < 117) {
-						/* End Of Transfer To Client */
-						System.out.println("File transfer is done...");
-						/* Close The Connection */
-						outputWriter.println("Closing connection...");
-						/* Close Streams and Sockets */
-						if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
-						if (bufferedFileOutputStream != null) fileOutputStream.close();
+						byte[] decrypted = verifyServer.decryptFileCP1(encrypted);
+						System.out.println(Arrays.toString(decrypted));
+						file.write(decrypted);
+						file.close();
+
+					} else if (encryptedNumBytes < 128) {
+						byte[] encrypted = new byte[encryptedNumBytes];
+						fromClient.readFully(encrypted, 0, encryptedNumBytes);
+
+						System.out.println(Arrays.toString(encrypted));
+						System.out.println("Length of eFileBytes: " + encrypted.length);
+
+						byte[] decrypted = verifyServer.decryptFileCP1(encrypted);
+						System.out.println(Arrays.toString(decrypted));
+						file.write(decrypted);
+						file.close();
+
+						/* End Of File Transfer */
+						System.out.println("Transfer complete...");
+						outputWriter.println("Ending Transfer...");
+						System.out.println("Closing all connections...");
 						fromClient.close();
 						toClient.close();
 						clientSocket.close();
 					}
+				} else if (packetType == 2) {
+					fromClient.close();
+					toClient.close();
+					clientSocket.close();
 				}
+				/* Start File Transfer */
+				// System.out.println("Authentication Protocol complete...");
+				// System.out.println("Receiving File...");
+
+				// /* Get file size from Client */
+				// int fileSize = fromClient.readInt();
+				// System.out.println("Size of file from Client: " + fileSize);
+
+				// int size = 0;
+				// String filename = "";
+
+				// while (size < fileSize) {
+
+				// int task = fromClient.readInt();
+
+				// /* Packet For Transferring File Name */
+				// if (task == 1) {
+				// /*
+				// * System.out.println("Receiving file..."); int numBytes =
+				// fromClient.readInt();
+				// * byte[] filename = new byte[numBytes]; // Must use read fully! // See: //
+				// * https://stackoverflow.com/questions/25897627/datainputstream-read-vs-
+				// * datainputstream-readfully fromClient.readFully(filename, 0, numBytes);
+				// *
+				// * fileOutputStream = new FileOutputStream("recv_" + new String(filename, 0,
+				// * numBytes)); bufferedFileOutputStream = new
+				// * BufferedOutputStream(fileOutputStream);
+				// */
+
+				// byte[] filenameBytes = new byte[fileSize];
+				// fromClient.readFully(filenameBytes);
+				// filename = new String(filenameBytes);
+
+				// /* INCOMING BLOCKS */
+				// } else if (task == 2) {
+
+				// // System.out.println("Receiving file...");
+				// // System.out.println("Getting file size...");
+
+				// int eFileSize = fromClient.readInt();
+				// System.out.println("File size: " + eFileSize);
+				// FileOutputStream file = new FileOutputStream("recv_" + filename, true);
+
+				// if (eFileSize == 117) {
+				// byte[] eFileBytes = new byte[eFileSize];
+				// fromClient.readFully(eFileBytes, 0, eFileSize);
+
+				// System.out.println(Arrays.toString(eFileBytes));
+				// System.out.println("Length of eFileBytes: " + eFileBytes.length);
+
+				// /* Decrypt with PUBLIC KEY */
+				// // System.out.println("Decrypting file with session key...");
+				// byte[] decrypted = verifyServer.decryptFileCP1(eFileBytes);
+				// file.write(decrypted);
+				// file.close();
+
+				// } else if (eFileSize < 117) {
+				// byte[] eFileBytes = new byte[eFileSize];
+				// fromClient.readFully(eFileBytes, 0, eFileSize);
+
+				// System.out.println(Arrays.toString(eFileBytes));
+				// System.out.println("Length of eFileBytes: " + eFileBytes.length);
+
+				// byte[] decrypted = verifyServer.decryptFileCP1(eFileBytes);
+				// file.write(decrypted);
+				// file.close();
+
+				// /* End Of File Transfer */
+				// System.out.println("Transfer complete...");
+				// outputWriter.println("Ending Transfer...");
+				// System.out.println("Closing all connections...");
+				// fromClient.close();
+				// toClient.close();
+				// clientSocket.close();
 			}
 
-		} catch (Exception e) {
+		} catch (
+
+		Exception e) {
 			e.printStackTrace();
 		}
 	}

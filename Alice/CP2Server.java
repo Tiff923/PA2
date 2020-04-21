@@ -49,6 +49,21 @@ public class CP2Server {
             /* Set Up */
             ServerVerification serverVerification = new ServerVerification(signedCert);
 
+            /* Get Nonce From Client */
+			fromClient.read(serverVerification.getNonce());
+			// outputWriter.println("Nonce received...");
+			System.out.println("Nonce received...");
+
+			/* Encrypt Nonce */
+			serverVerification.encryptNonce();
+			System.out.println("Nonce encrypted...");
+
+			/* Send Encrypted Nonce To Client */
+			// outputWriter.println("Sending nonce...");
+			toClient.write(serverVerification.getEncryptedNonce());
+			System.out.println("Nonce sent to client...");
+            toClient.flush();
+            
             /* Receive Cert request from client */
             while (true) {
                 String request = inputReader.readLine();
@@ -65,9 +80,20 @@ public class CP2Server {
                 }
             }
 
+            /* Receive confirmation from Client */
+			String ok = inputReader.readLine();
+			if (ok.equals("Server identity verified...")) {
+				System.out.println("Server identity verified...");
+			} else {
+				System.out.println("Client failed to identify server...");
+			}
+
             /* Wait for verification to be done */
-            System.out.println("Waiting for verification completion...");
-            System.out.println("Client: " + inputReader.readLine());
+            // System.out.println("Waiting for verification completion...");
+            // System.out.println("Client: " + inputReader.readLine());
+
+            System.out.println("Authentication Protocol complete...");
+			System.out.println("Receiving File...");
 
             byte[] sessionKey;
             String filename = "";

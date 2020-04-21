@@ -18,6 +18,8 @@ public class ServerVerification {
     private static PrivateKey serverPrivateKey = null;
     private static byte[] certificate = null;
     private InputStream server;
+    private static byte[] nonce = new byte[32];
+    private static byte[] encryptedNonce = new byte[128];
 
     public ServerVerification(String server) throws IOException {
         this.server = new FileInputStream(server);
@@ -58,6 +60,21 @@ public class ServerVerification {
         return certificate;
     }
 
+    /* Encrypt Nonce */
+    public void encryptNonce() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException{
+        Cipher eCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        eCipher.init(Cipher.ENCRYPT_MODE, serverPrivateKey);
+        encryptedNonce = eCipher.doFinal(nonce);
+    }
+
+    public byte[] getNonce(){
+        return nonce;
+    }
+
+    public byte[] getEncryptedNonce(){
+        return encryptedNonce;
+    }
+
     /* Encrypt using Private Key */
 
     public byte[] encryptFile(byte[] fileByte) {
@@ -94,16 +111,16 @@ public class ServerVerification {
             
             while (start < size) {
                 byte[] buffer;
-                if (size - start >= 117) {
+                if (size - start >= 128) {
                     //doFinal(byte[] input, int offset, int inputLength )
-                    buffer = dCipher.doFinal(fileByte, start, 117);
+                    buffer = dCipher.doFinal(fileByte, start, 128);
                 }
                 else {
                     //doFinal(byte[] input, int offset, int inputLength )
                     buffer = dCipher.doFinal(fileByte, start, size - start);
                 }
                 output.write(buffer, 0, buffer.length);
-                start += 117;
+                start += 128;
             }
             decrypted = output.toByteArray();
             output.close();
@@ -144,3 +161,4 @@ public class ServerVerification {
         return decrypted;
     }
 }
+
