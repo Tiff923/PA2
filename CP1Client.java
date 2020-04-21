@@ -83,6 +83,9 @@ public class CP1Client {
 
 			System.out.println("Sending file...");
 
+			byte[] fileToSend = Files.readAllBytes(Paths.get(filename));
+			toServer.writeInt(fileToSend.length);
+
 			// Send the filename
 			toServer.writeInt(0);
 			toServer.writeInt(filename.getBytes().length);
@@ -101,6 +104,9 @@ public class CP1Client {
 				byte[] encrypted = obtain.encryptFile1(fromFileBuffer); 
 				int encryptedNumBytes = encrypted.length; 
 				fileEnded = numBytes < 117;
+
+				System.out.println("File size: " + encryptedNumBytes); 
+
 
 				toServer.writeInt(1);
 				toServer.writeInt(encryptedNumBytes);
