@@ -113,9 +113,8 @@ public class CP1Server {
 			int fileSize = fromClient.readInt();
 			System.out.println("Size of file from Client: " + fileSize);
 
-			int size = 0;
 			String filename = ""; 
-			while (size < fileSize) {
+            while (!clientSocket.isClosed()) {
 				int packetType = fromClient.readInt();
 
 				/* Packet For Transferring File Name */
@@ -155,8 +154,8 @@ public class CP1Server {
                         System.out.println(Arrays.toString(eFileBytes));
                         System.out.println("Length of eFileBytes: " + eFileBytes.length);
 
-                        /* Decrypt with session key */
-                        System.out.println("Decrypting file with session key...");
+                        /* Decrypt with private key */
+                        System.out.println("Decrypting file with private key...");
                         byte[] decrypted = verifyServer.decryptFileCP1(eFileBytes);
                         file.write(decrypted);
                         file.close();
@@ -168,8 +167,8 @@ public class CP1Server {
                         System.out.println(Arrays.toString(eFileBytes));
                         System.out.println("Length of eFileBytes: " + eFileBytes.length);
 
-                        /* Decrypt with session key */
-                        System.out.println("Decrypting file with session key...");
+                        /* Decrypt with private key */
+                        System.out.println("Decrypting file with private key...");
                         byte[] decrypted = verifyServer.decryptFileCP1(eFileBytes);
                         file.write(decrypted);
                         file.close();
