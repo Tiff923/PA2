@@ -1,3 +1,5 @@
+package Alice;
+
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -65,6 +67,25 @@ public class CP1Server {
 			ServerVerification verifyServer = new ServerVerification(
 					"/Users/alicekham/Desktop/50.005/PA2/Alice/server_signedpublickey.crt");
 
+			/* Send Client An Encrypted Message */
+			/* Hi I'm The Server */
+			while(true) {
+				String request = inputReader.readLine();
+				if (request.equals("Please provide server identity...")) {
+					System.out.println("Client: " + request);
+
+					/* Send Encrypted Message */
+					String msg = "I'm the server.";
+					byte[] msgByte = verifyServer.encryptFile(msg.getBytes());
+					System.out.println(msgByte);
+					toClient.write(msgByte, 0, msgByte.length);
+					toClient.flush();
+					break;
+				}  else {
+					System.out.println("Failed to send message...");
+				}
+			}
+
 			/* Receive Cert request from Client */
 			while (true) {
 				String request = inputReader.readLine();
@@ -110,7 +131,7 @@ public class CP1Server {
 					fileOutputStream = new FileOutputStream("recv_" + new String(filename, 0, numBytes));
 					bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
-					/* Packet For Transferrin A Chunk Of File */
+				/* Packet For Transferrin A Chunk Of File */
 				} else if (packetType == 1) {
 					int numBytes = fromClient.readInt();
 					int decrytpedNumBytes = fromClient.readInt();

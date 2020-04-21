@@ -1,3 +1,5 @@
+package Alice;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -47,8 +49,8 @@ public class ServerVerification {
         this.server.close();
     }
     
-    /* Get Private Key from file */
-    public static PrivateKey get(String filename) throws Exception {
+    /* Get Private Key from File */
+    public PrivateKey get() throws Exception {
         byte[] keyBytes = Files.readAllBytes(Paths.get("/Users/alicekham/Desktop/50.005/PA2/Alice/private_key.der"));
 
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
@@ -58,6 +60,29 @@ public class ServerVerification {
 
     public byte[] getCertificate() {
         return certificate;
+    }
+
+    /* Encrypt using Private Key */
+
+    public byte[] encryptFile(byte[] fileByte) {
+
+        byte[] encrypted = null;
+        try {
+            Cipher eCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            eCipher.init(Cipher.DECRYPT_MODE, serverPrivateKey);
+            encrypted = eCipher.doFinal(fileByte);
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        }
+        return encrypted;
     }
     /* Decrypt using Private Key */
     public byte[] decryptFile(byte[] fileByte) {
