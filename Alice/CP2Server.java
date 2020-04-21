@@ -7,7 +7,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
 import java.util.Base64;
 
 import javax.crypto.Cipher;
@@ -22,7 +21,7 @@ public class CP2Server {
         DataOutputStream toClient = null;
         DataInputStream fromClient = null;
 
-        String signedCert = ("/Users/alicekham/Desktop/50.005/PA2/Alice/server_signedkey.crt");
+        String signedCert = ("server_signedkey.crt");
 
         BufferedReader inputReader = null;
         PrintWriter outputWriter = null;
@@ -50,20 +49,20 @@ public class CP2Server {
             ServerVerification serverVerification = new ServerVerification(signedCert);
 
             /* Get Nonce From Client */
-			fromClient.read(serverVerification.getNonce());
-			// outputWriter.println("Nonce received...");
-			System.out.println("Nonce received...");
+            fromClient.read(serverVerification.getNonce());
+            // outputWriter.println("Nonce received...");
+            System.out.println("Nonce received...");
 
-			/* Encrypt Nonce */
-			serverVerification.encryptNonce();
-			System.out.println("Nonce encrypted...");
+            /* Encrypt Nonce */
+            serverVerification.encryptNonce();
+            System.out.println("Nonce encrypted...");
 
-			/* Send Encrypted Nonce To Client */
-			// outputWriter.println("Sending nonce...");
-			toClient.write(serverVerification.getEncryptedNonce());
-			System.out.println("Nonce sent to client...");
+            /* Send Encrypted Nonce To Client */
+            // outputWriter.println("Sending nonce...");
+            toClient.write(serverVerification.getEncryptedNonce());
+            System.out.println("Nonce sent to client...");
             toClient.flush();
-            
+
             /* Receive Cert request from client */
             while (true) {
                 String request = inputReader.readLine();
@@ -81,19 +80,21 @@ public class CP2Server {
             }
 
             /* Receive confirmation from Client */
-			String ok = inputReader.readLine();
-			if (ok.equals("Server identity verified...")) {
-				System.out.println("Server identity verified...");
-			} else {
-				System.out.println("Client failed to identify server...");
-			}
+            String ok = inputReader.readLine();
+            if (ok.equals("Server identity verified...")) {
+                System.out.println("Client: " + ok);
+            } else {
+                System.out.println("Client failed to identify server...");
+            }
 
-            /* Wait for verification to be done */
-            // System.out.println("Waiting for verification completion...");
-            // System.out.println("Client: " + inputReader.readLine());
-
-            System.out.println("Authentication Protocol complete...");
-			System.out.println("Receiving File...");
+            String ap = inputReader.readLine();
+            if (ap.equals("Authentication Protocol complete...")) {
+                System.out.println("Client: " + ap);
+            } else {
+                System.out.println("Authentication Protocol failed...");
+                clientSocket.close();
+            }
+            System.out.println("Receiving File...");
 
             byte[] sessionKey;
             String filename = "";
@@ -101,10 +102,9 @@ public class CP2Server {
 
             /* Wait for client to accept the encrypted session key */
             while (!clientSocket.isClosed()) {
-                System.out.println("there");
+
                 int task = fromClient.readInt();
-                System.out.println(task);
-                System.out.println("reached");
+
                 BufferedInputStream inputStream = new BufferedInputStream(clientSocket.getInputStream());
 
                 /* Decrypt Session Key using Server Public Key */
@@ -133,22 +133,19 @@ public class CP2Server {
 
                 /* Receive File */
                 else if (task == 2) {
-                    System.out.println("Receiving file...");
-                    System.out.println("Getting file size...");
 
                     int eFileSize = fromClient.readInt();
-                    System.out.println("File size: " + eFileSize);
                     FileOutputStream file = new FileOutputStream("recv_" + filename, true);
 
                     if (eFileSize == 128) {
                         byte[] eFileBytes = new byte[eFileSize];
                         fromClient.readFully(eFileBytes, 0, eFileSize);
 
-                        System.out.println(Arrays.toString(eFileBytes));
-                        System.out.println("Length of eFileBytes: " + eFileBytes.length);
+                        // System.out.println(Arrays.toString(eFileBytes));
+                        // System.out.println("Length of eFileBytes: " + eFileBytes.length);
 
                         /* Decrypt with session key */
-                        System.out.println("Decrypting file with session key...");
+                        // System.out.println("Decrypting file with session key...");
                         byte[] decrypted = dCipher.doFinal(eFileBytes);
                         file.write(decrypted);
                         file.close();
@@ -157,27 +154,31 @@ public class CP2Server {
                         byte[] eFileBytes = new byte[eFileSize];
                         fromClient.readFully(eFileBytes, 0, eFileSize);
 
-                        System.out.println(Arrays.toString(eFileBytes));
-                        System.out.println("Length of eFileBytes: " + eFileBytes.length);
+                        // System.out.println(Arrays.toString(eFileBytes));
+                        // System.out.println("Length of eFileBytes: " + eFileBytes.length);
 
                         /* Decrypt with session key */
-                        System.out.println("Decrypting file with session key...");
+                        // System.out.println("Decrypting file with session key...");
                         byte[] decrypted = dCipher.doFinal(eFileBytes);
                         file.write(decrypted);
                         file.close();
 
                         /* End Of File Transfer */
+
                         System.out.println("Transfer complete...");
-                        outputWriter.println("Ending Transfer...");
                         System.out.println("Closing all connections...");
                         fromClient.close();
                         toClient.close();
                         clientSocket.close();
+
                     }
                 }
+
             }
 
-        } catch (Exception e) {
+        } catch (
+
+        Exception e) {
             // TODO: handle exception
             e.printStackTrace();
         }

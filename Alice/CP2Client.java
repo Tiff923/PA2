@@ -1,41 +1,39 @@
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-
 public class CP2Client {
 
 	public static void main(String[] args) {
 
-    	String filename = "100.txt";
-    	if (args.length > 0) filename = args[0];
+		String filename = "500.txt";
+		if (args.length > 0)
+			filename = args[0];
 
-    	String serverAddress = "localhost";
-    	if (args.length > 1) filename = args[1];
+		String serverAddress = "localhost";
+		if (args.length > 1)
+			filename = args[1];
 
-    	int port = 4321;
-    	if (args.length > 2) port = Integer.parseInt(args[2]);
+		int port = 4321;
+		if (args.length > 2)
+			port = Integer.parseInt(args[2]);
 
 		int numBytes = 0;
 
 		Socket clientSocket = null;
 
-        DataOutputStream toServer = null;
-        DataInputStream fromServer = null;
+		DataOutputStream toServer = null;
+		DataInputStream fromServer = null;
 
-    	FileInputStream fileInputStream = null;
-        BufferedInputStream bufferedFileInputStream = null;
+		FileInputStream fileInputStream = null;
+		BufferedInputStream bufferedFileInputStream = null;
 
 		long timeStarted = System.nanoTime();
 
@@ -46,39 +44,37 @@ public class CP2Client {
 			// Connect to server and get the input and output streams
 			clientSocket = new Socket(serverAddress, port);
 			toServer = new DataOutputStream(clientSocket.getOutputStream());
-            fromServer = new DataInputStream(clientSocket.getInputStream());
-            
-            //To send data through the socket to the server
-			PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true); 
-			//To get the server's response
-			BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+			fromServer = new DataInputStream(clientSocket.getInputStream());
 
-			out.println("Requesting authentication...");
-			out.println("Requesting certificate from server...");
-			out.flush();
+			// To send data through the socket to the server
+			PrintWriter outputWriter = new PrintWriter(clientSocket.getOutputStream(), true);
+			
 
-			ClientVerification obtain = new ClientVerification("/Users/alicekham/Desktop/50.005/PA2/Alice/cacse.crt"); 
+			outputWriter.println("Requesting authentication...");
+			// outputWriter.flush();
+
+			ClientVerification obtain = new ClientVerification("cacse.crt");
 			/** Generate Nonce **/
-            System.out.println("Generating Nonce...");
-            obtain.generateNonce();
+			System.out.println("Generating Nonce...");
+			obtain.generateNonce();
 
-            /** Send Nonce to Server **/
-            System.out.println("Sending Nonce over...");
-            toServer.write(obtain.getNonce());
+			/** Send Nonce to Server **/
+			System.out.println("Sending Nonce over...");
+			toServer.write(obtain.getNonce());
 
-            /** Get Encrypted nonce **/
-            fromServer.read(obtain.getEncryptedNonce());
+			/** Get Encrypted nonce **/
+			fromServer.read(obtain.getEncryptedNonce());
 			System.out.println("Retrieved encrypted nonce from server...");
-			
-			System.out.println("Requesting certificate from server...");
-			out.println("Requesting certificate from server...");
 
-			//get cert from Server and store in buffer 
-			byte[] buffer = new byte[8192]; 
-			fromServer.read(buffer); 
-			
-			//Obtain server public key 
-			InputStream certificate = new ByteArrayInputStream(buffer); 
+			System.out.println("Requesting certificate from server...");
+			outputWriter.println("Requesting certificate from server...");
+
+			// get cert from Server and store in buffer
+			byte[] buffer = new byte[8192];
+			fromServer.read(buffer);
+
+			// Obtain server public key
+			InputStream certificate = new ByteArrayInputStream(buffer);
 			obtain.getCertificate(certificate);
 			obtain.getServerPublicKey();
 			obtain.verifyCert();
@@ -86,7 +82,7 @@ public class CP2Client {
 			byte[] check = obtain.decryptNonce(obtain.getEncryptedNonce());
 
 			if (obtain.validateNonce(check) == true) {
-				out.println("Server identity verified...");
+				outputWriter.println("Server identity verified...");
 				System.out.println("Server identity verified...");
 			} else {
 				System.out.println("Server identity not verified...");
@@ -97,49 +93,47 @@ public class CP2Client {
 				toServer.close();
 			}
 
-			//Authentication Protocol - decrypt message from server 
-			//Inform server authentication complete 
-			out.println("Authentication complete ...");
-			out.flush();
+			// Authentication Protocol - decrypt message from server
+			// Inform server authentication complete
+			outputWriter.println("Authentication Protocol complete...");
+			// outputWriter.flush();
 
-            System.out.println("Sending file...");
-			
-			//Setting up confidentiality protocol 
-			ClientVerification encrypt = new ClientVerification("cacse.crt"); 
+			System.out.println("Sending file...");
 
-			//Generate session key 
+			// Setting up confidentiality protocol
+			ClientVerification encrypt = new ClientVerification("cacse.crt");
+
+			// Generate session key
 			encrypt.generateSymmetricKey();
 
-			//Encrypt session key with server public key 
-			byte[] encryptedSessionKey = encrypt.encryptKey(); 
+			// Encrypt session key with server public key
+			byte[] encryptedSessionKey = encrypt.encryptKey();
 
-			//Send encrypted Session key to Server 
+			// Send encrypted Session key to Server
 			toServer.writeInt(0);
 			toServer.writeInt(encryptedSessionKey.length);
 			toServer.write(encryptedSessionKey);
 			toServer.flush();
-		   
-			System.out.println("I am here");
+
 			// Send the filename
 			toServer.writeInt(1);
-			System.out.println("No, i am here already");
 			toServer.writeInt(filename.getBytes().length);
 			toServer.write(filename.getBytes());
 			toServer.flush();
 
-			//Encrypt file with session key
+			// Encrypt file with session key
 			byte[] fileToSend = Files.readAllBytes(Paths.get(filename));
-			byte[] encryptedFile = encrypt.encryptFile2(fileToSend); 
-			InputStream inputStream = new ByteArrayInputStream(encryptedFile); 
+			byte[] encryptedFile = encrypt.encryptFile2(fileToSend);
+			InputStream inputStream = new ByteArrayInputStream(encryptedFile);
 
 			// Open the file
-			//fileInputStream = new FileInputStream(filename);
+			// fileInputStream = new FileInputStream(filename);
 			bufferedFileInputStream = new BufferedInputStream(inputStream);
 
-	        byte [] fromFileBuffer = new byte[128];
+			byte[] fromFileBuffer = new byte[128];
 
-	        // Send the file
-	        for (boolean fileEnded = false; !fileEnded;) {
+			// Send the file
+			for (boolean fileEnded = false; !fileEnded;) {
 				numBytes = bufferedFileInputStream.read(fromFileBuffer);
 				fileEnded = numBytes < 128;
 
@@ -149,14 +143,20 @@ public class CP2Client {
 				toServer.flush();
 			}
 
-	        bufferedFileInputStream.close();
-	        //fileInputStream.close();
+			bufferedFileInputStream.close();
+			// fileInputStream.close();
 
+			System.out.println("File transfer done...");
 			System.out.println("Closing connection...");
+			clientSocket.close();
+			fromServer.close();
+			toServer.close();
 
-		} catch (Exception e) {e.printStackTrace();}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		long timeTaken = System.nanoTime() - timeStarted;
-		System.out.println("Program took: " + timeTaken/1000000.0 + "ms to run");
+		System.out.println("Program took: " + timeTaken / 1000000.0 + "ms to run");
 	}
 }
